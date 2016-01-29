@@ -4,7 +4,8 @@ import os
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-from nltk.stem.snowball import SnowballStemmer
+from nltk.stem.porter import *
+from stemming.paicehusk import stem
 
 g = Github('11f05f96a85f334542c789e5b5118d9dbf6c60c3')
 
@@ -70,7 +71,7 @@ def scrap() :
 
 def stopWordRemoval() :
 	
-	# stemmer= SnowballStemmer('english')
+	# stemmer= PorterStemmer()
 
 	# stemmedArr=[]
 
@@ -133,6 +134,140 @@ def stopWordRemoval() :
 		i=i+2
 
 
-stopWordRemoval()
+def stemTest() :
+
+	fc = open('data/django/content.txt')
+	sc = fc.read().lower()
+
+	print sc + "\n"
+
+	tokenizer = RegexpTokenizer(r'\w+')
+	wordArrData = tokenizer.tokenize(sc)
+
+	filteredWordsData = [w for w in wordArrData if not w in stopwords.words('english')]
+
+	stemmedData = []
+
+	# stemmer = PorterStemmer();
+
+	for word in filteredWordsData :
+		stemmedData.append(stem(word))
+
+	print stemmedData
 
 
+def keywords() :
+	keyword_set = set()
+
+	keyword_dict = {}
+
+	f = open('repos', 'r')
+	strn = f.read()
+	lst = strn.split('\n')
+
+	i = 0
+	while i < (len(lst) - 1) :
+	
+		name = lst[i].split("/")
+
+		keyword_dict[name[1]] = {}
+
+		ft = open('filteredData/'+name[1]+'/title.lst')
+		lt = ft.read().split('\n')
+
+		fd = open('filteredData/'+name[1]+'/description.lst')
+		ld = fd.read().split('\n')
+
+		fc = open('filteredData/'+name[1]+'/content.lst')
+		lc = fc.read().split('\n')
+		
+		for w in lt : 
+			keyword_set.add(w);
+			if w in keyword_dict[name[1]] :
+				keyword_dict[name[1]][w][0] += 1
+			else :
+				keyword_dict[name[1]][w] =  [1,0,0];
+
+		for w in ld : 
+			keyword_set.add(w);
+			if w in keyword_dict[name[1]] :
+				keyword_dict[name[1]][w][1] += 1
+			else :
+				keyword_dict[name[1]][w] =  [0,1,0];
+
+		for w in lc : 
+			keyword_set.add(w);
+			if w in keyword_dict[name[1]] :
+				keyword_dict[name[1]][w][2] += 1
+			else :
+				keyword_dict[name[1]][w] =  [0,0,1];
+
+		i=i+2
+
+	f = open('keywords', 'w')
+
+	f.write(str(keyword_dict))
+	f.close()
+
+
+	df = {}
+
+	j = 0
+	for keyword in keyword_set :
+		i = 0
+		j = j + 1
+
+		print("word "+str(j)+"\t"+keyword)
+
+		df[keyword] = 0
+
+		while i < (len(lst) - 1) :
+		
+			name = lst[i].split("/")
+
+			i=i+2
+
+			ft = open('filteredData/'+name[1]+'/title.lst')
+			lt = ft.read().split('\n')
+
+			fd = open('filteredData/'+name[1]+'/description.lst')
+			ld = fd.read().split('\n')
+
+			fc = open('filteredData/'+name[1]+'/content.lst')
+			lc = fc.read().split('\n')
+
+
+			if keyword in lt :
+				df[keyword] = df[keyword] + 1
+				continue
+			
+
+			if keyword in ld :
+				df[keyword] = df[keyword] + 1
+				continue
+			
+
+			if keyword in lc :
+				df[keyword] = df[keyword] + 1
+				continue
+			
+
+
+
+		print keyword +"  :  "+str(df[keyword])+ "\n"
+
+
+	f = open('df', 'w')
+
+	f.write(str(df))
+	f.close()
+
+
+	# print df
+
+
+
+
+
+
+keywords()
