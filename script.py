@@ -8,6 +8,7 @@ from nltk.stem.porter import *
 from stemming.paicehusk import stem
 from math import *
 import decimal
+import operator
 
 
 g = Github('11f05f96a85f334542c789e5b5118d9dbf6c60c3')
@@ -350,6 +351,8 @@ def query() :
 	
 	q = raw_input("enter the query ? \n")
 
+	# q = "google"
+
 	tokenizer = RegexpTokenizer(r'\w+')
 	q = tokenizer.tokenize(q)
 	q = [w for w in q if not w in stopwords.words('english')]
@@ -359,7 +362,7 @@ def query() :
 	f = open('repo-1row-vector.vct', 'r')
 	keyword_data = eval(f.read())
 
-	results = {}
+	results = []
 
 	# print keyword_data
 
@@ -379,11 +382,79 @@ def query() :
 		if mod2==0 :
 			pass
 		else :
-			print str(num) +" : "+str(mod2)+"\n"
-			results[repo] = (float(frequency)/len(q))*float(num)/(mod1*mod2)
+			tup = (repo, round((float(frequency)/len(q))*float(num)/(mod1*mod2),5), 0)
 
-	for result in results :
-		print result+"\t:\t"+str(results[result])+"\n"
+			results.append(tup)
 
+	results = sorted(results, key=lambda tup: tup[1], reverse = True)
+
+	print results
+
+	if (len(results) > 0) :
+		qualified = two_mean_od_cluster(results)
+	else : 
+		qualified = 0
+
+	for i in range(0,qualified) : 
+		print results[i]
+
+
+def two_mean_od_cluster(lst) :
+
+	assign_lst = [0]*len(lst)
+
+	upperbnd = lst[0][1]
+	lowerbnd = lst[len(lst) - 1][1]
+
+	c1 = ((upperbnd - lowerbnd)*0.25) + lowerbnd
+	c2 = ((upperbnd - lowerbnd)*0.75) + lowerbnd
+
+	q1 = 0
+	q2 = 0
+
+	for i in range(0,10) : 
+		j=0
+		c1_num = 0
+		c1_frq = 0
+		c2_num = 0
+		c2_frq = 0
+		q2 = 0
+		for repo in lst : 
+			d1 = abs(c1 - repo[1])
+			d2 = abs(c2 - repo[1])
+			if d2 >= d1 : 
+				assign_lst[j] = 1
+				c1_num += repo[1]
+				c1_frq += 1
+			else : 
+				q2 += 1
+				assign_lst[j] = 2
+				c2_num += repo[1]
+				c2_frq += 1
+
+			j = j + 1
+
+		print assign_lst
+
+		try :
+			c1 = c1_num / c1_frq
+		except : 
+			return 0
+
+		try :
+			c2 = c2_num / c2_frq
+		except : 
+			return len(lst)
+
+		if(q1==q2) : 
+			break;
+		else : 
+			q1 = q2
+
+	return q2
+
+
+
+query()
 
 
