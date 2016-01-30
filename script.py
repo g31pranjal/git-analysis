@@ -6,6 +6,9 @@ from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import *
 from stemming.paicehusk import stem
+from math import *
+import decimal
+
 
 g = Github('11f05f96a85f334542c789e5b5118d9dbf6c60c3')
 
@@ -161,6 +164,8 @@ def keywords() :
 
 	keyword_dict = {}
 
+	keyword_max = {}
+
 	f = open('repos', 'r')
 	strn = f.read()
 	lst = strn.split('\n')
@@ -171,6 +176,7 @@ def keywords() :
 		name = lst[i].split("/")
 
 		keyword_dict[name[1]] = {}
+		keyword_max[name[1]] = 0
 
 		ft = open('filteredData/'+name[1]+'/title.lst')
 		lt = ft.read().split('\n')
@@ -202,12 +208,30 @@ def keywords() :
 			else :
 				keyword_dict[name[1]][w] =  [0,0,1];
 
+		maxi = 0
+		for w in keyword_dict[name[1]] : 
+			if(keyword_dict[name[1]][w][0] + keyword_dict[name[1]][w][1] + keyword_dict[name[1]][w][2] > maxi) :
+				maxi = keyword_dict[name[1]][w][0] + keyword_dict[name[1]][w][1] + keyword_dict[name[1]][w][2]
+		
+		keyword_max[name[1]] = maxi
+
+		for w in keyword_dict[name[1]] : 
+			keyword_dict[name[1]][w][0] = round(decimal.Decimal(float(keyword_dict[name[1]][w][0]*1000000) / maxi),5)
+			keyword_dict[name[1]][w][1] = round(decimal.Decimal(float(keyword_dict[name[1]][w][1]*10000) / maxi),5)
+			keyword_dict[name[1]][w][2] = round(decimal.Decimal(float(keyword_dict[name[1]][w][2]*100) / maxi),5)
+		
+
+
 		i=i+2
+
+
 
 	f = open('keywords', 'w')
 
 	f.write(str(keyword_dict))
 	f.close()
+
+	# print keyword_max
 
 
 	df = {}
@@ -217,9 +241,9 @@ def keywords() :
 		i = 0
 		j = j + 1
 
-		print("word "+str(j)+"\t"+keyword)
+		# print("word "+str(j)+"\t"+keyword)
 
-		df[keyword] = 0
+		df[keyword] = [0,0]
 
 		while i < (len(lst) - 1) :
 		
@@ -238,23 +262,25 @@ def keywords() :
 
 
 			if keyword in lt :
-				df[keyword] = df[keyword] + 1
+				df[keyword][0] = df[keyword][0] + 1
 				continue
 			
 
 			if keyword in ld :
-				df[keyword] = df[keyword] + 1
+				df[keyword][0] = df[keyword][0] + 1
 				continue
 			
 
 			if keyword in lc :
-				df[keyword] = df[keyword] + 1
+				df[keyword][0] = df[keyword][0] + 1
 				continue
 			
 
+		df[keyword][1] = log((float(44.0)/df[keyword][0]),2)
 
+		df[keyword][1] = round(decimal.Decimal(df[keyword][1]),3)
 
-		print keyword +"  :  "+str(df[keyword])+ "\n"
+		# print keyword +"  :  "+str(df[keyword][0])+"  :  "+str(df[keyword][1])+ "\n"
 
 
 	f = open('df', 'w')
@@ -265,9 +291,75 @@ def keywords() :
 
 	# print df
 
+	keyword_1row = {}
+
+	for repo in keyword_dict :
+		keyword_1row[repo] = {}
+		for word in keyword_dict[repo] :
+			keyword_1row[repo][word] = 0
+			#print keyword_dict[repo][word]+"\n"
+			idf_value = df[word][1]
+			keyword_dict[repo][word][0] = round(decimal.Decimal(keyword_dict[repo][word][0]*idf_value),5)
+			keyword_dict[repo][word][1] = round(decimal.Decimal(keyword_dict[repo][word][1]*idf_value),5)
+			keyword_dict[repo][word][2] = round(decimal.Decimal(keyword_dict[repo][word][2]*idf_value),5)
+			# print word+" : "+str(idf_value)+"\n"
+			
+			keyword_1row[repo][word] = keyword_dict[repo][word][0] + keyword_dict[repo][word][1] + keyword_dict[repo][word][2]
+
+	f = open('repo-3row-vector-.vct', 'w')
+
+	f.write(str(keyword_dict))
+	f.close()
+	
+	f = open('repo-1row-vector-.vct', 'w')
+
+	f.write(str(keyword_1row))
+	f.close()
+
+
+def query() :
+	
+	q = raw_input("enter the query ? \n")
+
+	tokenizer = RegexpTokenizer(r'\w+')
+	q = tokenizer.tokenize(q)
+	q = [w for w in q if not w in stopwords.words('english')]
+
+	mod1 = sqrt(len(q))
+
+	f = open('repo-1row-vector-.vct', 'r')
+	keyword_data = eval(f.read())
+
+	results = {}
+
+	# print keyword_data
+
+	for repo in keyword_data : 
+		num = 0
+		mod2 = 0
+		frequency = 0
+
+		for word in keyword_data[repo] : 
+			if word in q : 
+				num = num + keyword_data[repo][word]
+				mod2 = mod2 + pow(keyword_data[repo][word],2)
+				frequency = frequency + 1
+
+
+		mod2 = sqrt(float(mod2))
+
+		if mod2==0 :
+			pass
+		else :
+			print str(num) +" : "+str(mod2)+"\n"
+			results[repo] = (float(frequency)/len(q))*float(num)/(mod1*mod2)
 
 
 
 
 
-keywords()
+	for result in results :
+		print result+"\t:\t"+str(results[result])+"\n"
+
+
+
