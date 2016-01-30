@@ -12,6 +12,8 @@ import decimal
 
 g = Github('11f05f96a85f334542c789e5b5118d9dbf6c60c3')
 
+
+# Scrapping the Github for README file and description !
 def scrap() : 
 	f = open('repos', 'r')
 	strn = f.read()
@@ -21,14 +23,11 @@ def scrap() :
 	while i < (len(lst) - 1) :
 		name = lst[i].split("/")
 
-
 		dummyFile = 'data/' + name[1] + '/dummy.txt';
 		dr = os.path.dirname(dummyFile)
 
 		if not os.path.exists(dr) :
 			os.makedirs(dr)
-
-
 
 		try :
 			repo = g.get_repo(lst[i])
@@ -51,7 +50,6 @@ def scrap() :
 			print("pygithub error")
 
 
-
 		try :
 			base = "https://raw.githubusercontent.com/" + lst[i] + "/master/" + lst[i+1]
 
@@ -68,10 +66,10 @@ def scrap() :
 		except : 
 			print("request error")
 
-
 		i = i + 2
 
 
+# Removing punctuations, stopwords and stemming. (refining the word list !)
 def stopWordRemoval() :
 	
 	# stemmer= PorterStemmer()
@@ -137,6 +135,7 @@ def stopWordRemoval() :
 		i=i+2
 
 
+# Stem Algo tests
 def stemTest() :
 
 	fc = open('data/django/content.txt')
@@ -159,8 +158,8 @@ def stemTest() :
 	print stemmedData
 
 
-def keywords() :
-	keyword_set = set()
+# Calculating tf value of the keywords in a particular repository 
+def keyword_tf() :
 
 	keyword_dict = {}
 
@@ -188,21 +187,18 @@ def keywords() :
 		lc = fc.read().split('\n')
 		
 		for w in lt : 
-			keyword_set.add(w);
 			if w in keyword_dict[name[1]] :
 				keyword_dict[name[1]][w][0] += 1
 			else :
 				keyword_dict[name[1]][w] =  [1,0,0];
 
 		for w in ld : 
-			keyword_set.add(w);
 			if w in keyword_dict[name[1]] :
 				keyword_dict[name[1]][w][1] += 1
 			else :
 				keyword_dict[name[1]][w] =  [0,1,0];
 
 		for w in lc : 
-			keyword_set.add(w);
 			if w in keyword_dict[name[1]] :
 				keyword_dict[name[1]][w][2] += 1
 			else :
@@ -221,17 +217,46 @@ def keywords() :
 			keyword_dict[name[1]][w][2] = round(decimal.Decimal(float(keyword_dict[name[1]][w][2]*100) / maxi),5)
 		
 
-
 		i=i+2
-
-
 
 	f = open('keywords', 'w')
 
 	f.write(str(keyword_dict))
 	f.close()
 
-	# print keyword_max
+
+# Calculating df value of all entities in keywords sets in all repositories 
+def keyword_set_df() :
+	keyword_set = set()
+
+	f = open('repos', 'r')
+	strn = f.read()
+	lst = strn.split('\n')
+
+	i = 0
+	while i < (len(lst) - 1) :
+	
+		name = lst[i].split("/")
+
+		ft = open('filteredData/'+name[1]+'/title.lst')
+		lt = ft.read().split('\n')
+
+		fd = open('filteredData/'+name[1]+'/description.lst')
+		ld = fd.read().split('\n')
+
+		fc = open('filteredData/'+name[1]+'/content.lst')
+		lc = fc.read().split('\n')
+		
+		for w in lt : 
+			keyword_set.add(w);
+
+		for w in ld : 
+			keyword_set.add(w);
+
+		for w in lc : 
+			keyword_set.add(w);
+
+		i=i+2
 
 
 	df = {}
@@ -240,8 +265,6 @@ def keywords() :
 	for keyword in keyword_set :
 		i = 0
 		j = j + 1
-
-		# print("word "+str(j)+"\t"+keyword)
 
 		df[keyword] = [0,0]
 
@@ -289,7 +312,14 @@ def keywords() :
 	f.close()
 
 
-	# print df
+# calculate the weights of each keyword in the repository
+def keyword_weight() :
+
+	f1 = open('df', 'r')
+	df = eval(f1.read())
+
+	f2 = open('keywords', 'r')
+	keyword_dict = eval(f2.read())
 
 	keyword_1row = {}
 
@@ -297,26 +327,25 @@ def keywords() :
 		keyword_1row[repo] = {}
 		for word in keyword_dict[repo] :
 			keyword_1row[repo][word] = 0
-			#print keyword_dict[repo][word]+"\n"
 			idf_value = df[word][1]
 			keyword_dict[repo][word][0] = round(decimal.Decimal(keyword_dict[repo][word][0]*idf_value),5)
 			keyword_dict[repo][word][1] = round(decimal.Decimal(keyword_dict[repo][word][1]*idf_value),5)
 			keyword_dict[repo][word][2] = round(decimal.Decimal(keyword_dict[repo][word][2]*idf_value),5)
-			# print word+" : "+str(idf_value)+"\n"
 			
-			keyword_1row[repo][word] = keyword_dict[repo][word][0] + keyword_dict[repo][word][1] + keyword_dict[repo][word][2]
+	 		keyword_1row[repo][word] = keyword_dict[repo][word][0] + keyword_dict[repo][word][1] + keyword_dict[repo][word][2]
 
-	f = open('repo-3row-vector-.vct', 'w')
+	f = open('repo-3row-vector.vct', 'w')
 
 	f.write(str(keyword_dict))
 	f.close()
 	
-	f = open('repo-1row-vector-.vct', 'w')
+	f = open('repo-1row-vector.vct', 'w')
 
 	f.write(str(keyword_1row))
 	f.close()
 
 
+# takes in the user query, forms a query vector and implements cosine similarity 
 def query() :
 	
 	q = raw_input("enter the query ? \n")
@@ -327,7 +356,7 @@ def query() :
 
 	mod1 = sqrt(len(q))
 
-	f = open('repo-1row-vector-.vct', 'r')
+	f = open('repo-1row-vector.vct', 'r')
 	keyword_data = eval(f.read())
 
 	results = {}
@@ -345,7 +374,6 @@ def query() :
 				mod2 = mod2 + pow(keyword_data[repo][word],2)
 				frequency = frequency + 1
 
-
 		mod2 = sqrt(float(mod2))
 
 		if mod2==0 :
@@ -353,10 +381,6 @@ def query() :
 		else :
 			print str(num) +" : "+str(mod2)+"\n"
 			results[repo] = (float(frequency)/len(q))*float(num)/(mod1*mod2)
-
-
-
-
 
 	for result in results :
 		print result+"\t:\t"+str(results[result])+"\n"
