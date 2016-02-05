@@ -22,20 +22,20 @@ high
 level
 api
 cocos2d
-js
+j
 binding
 engine
 compatible
 cocos2d
 x
-supports
+support
 canvas
 webgl
 renderer
 cross
 platform
 popular
-browsers
+browser
 chrome
 14
 safari
@@ -46,7 +46,7 @@ firefox
 3
 5
 mobile
-platforms
+platform
 coming
 native
 app
@@ -54,7 +54,7 @@ piece
 code
 run
 cocos2d
-js
+j
 binding
 engine
 modification
@@ -66,7 +66,7 @@ x
 org
 3
 api
-references
+reference
 http
 www
 cocos2d
@@ -87,7 +87,7 @@ install
 cocos2d
 html5
 running
-tests
+test
 version
 3
 shell
@@ -115,7 +115,7 @@ browser
 http
 localhost
 8000
-tests
+test
 contact
 forum
 http
@@ -173,7 +173,7 @@ org
 wiki
 reference
 api
-references
+reference
 5
 http
 forum

@@ -1,8 +1,8 @@
 give
-js
+j
 app
 backbone
-models
-views
-collections
-events
+model
+view
+collection
+event

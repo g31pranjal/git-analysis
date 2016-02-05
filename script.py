@@ -9,9 +9,11 @@ from stemming.paicehusk import stem
 from math import *
 import decimal
 import operator
+from nltk.stem import WordNetLemmatizer
+import json
 
 
-g = Github('11f05f96a85f334542c789e5b5118d9dbf6c60c3')
+g = Github('b11cd88e5a7c991cd02645dbf2ed7d0d9c21ec0c')
 
 
 # Scrapping the Github for README file and description !
@@ -70,18 +72,45 @@ def scrap() :
 		i = i + 2
 
 
+#Scrapping repository statistics 
+def scrapRepoData() :
+	f = open('repos', 'r')
+	strn = f.read()
+	lst = strn.split('\n')
+
+	i = 0
+	while i < (len(lst) - 1) :
+	# while i < 1 :
+		name = lst[i].split("/")
+
+		try :
+			base = "https://api.github.com/repos/" + lst[i] 
+
+			base = base + "?access_token=b11cd88e5a7c991cd02645dbf2ed7d0d9c21ec0c"
+
+			print base
+
+			r = requests.get(base)
+			r.encoding = 'utf-8'		
+			content = json.loads(r.text)
+
+			fc = open('data/'+name[1]+'/data.str', 'w');
+			fc.write(str(content))
+			fc.close()
+
+			print(lst[i] + "\t:\***********************************************completed")
+
+
+		except : 
+			print(lst[i]+"\t:\trequest error")
+
+
+		i = i + 2
+
+
 # Removing punctuations, stopwords and stemming. (refining the word list !)
 def stopWordRemoval() :
-	
-	# stemmer= PorterStemmer()
 
-	# stemmedArr=[]
-
-	# for word in filteredWords:
-	# 	stemmedWord= stemmer.stem(word)
-	# 	stemmedArr.append(stemmedWord)
-
-	# print stemmedArr
 
 	f = open('repos', 'r')
 	strn = f.read()
@@ -118,45 +147,25 @@ def stopWordRemoval() :
 		filteredWordsDesc = [w for w in wordArrDesc if not w in stopwords.words('english')]
 		filteredWordsData = [w for w in wordArrData if not w in stopwords.words('english')]
 
+		wordnet_lem= WordNetLemmatizer()
+
+
 		ftf = open('filteredData/'+name[1]+'/title.lst','w')
 		for w in filteredWordsTitle:
 			#print w
-			ftf.write(w+'\n')
+			ftf.write(wordnet_lem.lemmatize(w)+'\n')
 
 		fdf = open('filteredData/'+name[1]+'/description.lst','w')
 		for w in filteredWordsDesc:
 			#print w
-			fdf.write(w+'\n')
+			fdf.write(wordnet_lem.lemmatize(w)+'\n')
 
 		fcf = open('filteredData/'+name[1]+'/content.lst','w')
 		for w in filteredWordsData:
 			print w+'\n'
-			fcf.write(w+'\n')
+			fcf.write(wordnet_lem.lemmatize(w)+'\n')
 		
 		i=i+2
-
-
-# Stem Algo tests
-def stemTest() :
-
-	fc = open('data/django/content.txt')
-	sc = fc.read().lower()
-
-	print sc + "\n"
-
-	tokenizer = RegexpTokenizer(r'\w+')
-	wordArrData = tokenizer.tokenize(sc)
-
-	filteredWordsData = [w for w in wordArrData if not w in stopwords.words('english')]
-
-	stemmedData = []
-
-	# stemmer = PorterStemmer();
-
-	for word in filteredWordsData :
-		stemmedData.append(stem(word))
-
-	print stemmedData
 
 
 # Calculating tf value of the keywords in a particular repository 
@@ -355,7 +364,8 @@ def query() :
 
 	tokenizer = RegexpTokenizer(r'\w+')
 	q = tokenizer.tokenize(q)
-	q = [w for w in q if not w in stopwords.words('english')]
+	wordnet_lem= WordNetLemmatizer()
+	q = [wordnet_lem.lemmatize(w) for w in q if not w in stopwords.words('english')]
 
 	mod1 = sqrt(len(q))
 
@@ -382,7 +392,7 @@ def query() :
 		if mod2==0 :
 			pass
 		else :
-			tup = (repo, round((float(frequency)/len(q))*float(num)/(mod1*mod2),5), 0)
+			tup = (repo, round((float(frequency)/len(q))*float(num)/(mod1*mod2),5))
 
 			results.append(tup)
 
@@ -399,6 +409,7 @@ def query() :
 		print results[i]
 
 
+# 2-mean clusterring on the results to get a relevent set of results
 def two_mean_od_cluster(lst) :
 
 	assign_lst = [0]*len(lst)
@@ -452,9 +463,4 @@ def two_mean_od_cluster(lst) :
 			q1 = q2
 
 	return q2
-
-
-
-query()
-
 
