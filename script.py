@@ -10,6 +10,8 @@ from math import *
 import decimal
 import operator
 from nltk.stem import WordNetLemmatizer
+import matplotlib.pyplot as plt
+import numpy as np
 import json
 
 
@@ -222,9 +224,9 @@ def keyword_tf() :
 		keyword_max[name[1]] = maxi
 
 		for w in keyword_dict[name[1]] : 
-			keyword_dict[name[1]][w][0] = round(decimal.Decimal(float(keyword_dict[name[1]][w][0]*1000000) / maxi),5)
-			keyword_dict[name[1]][w][1] = round(decimal.Decimal(float(keyword_dict[name[1]][w][1]*10000) / maxi),5)
-			keyword_dict[name[1]][w][2] = round(decimal.Decimal(float(keyword_dict[name[1]][w][2]*100) / maxi),5)
+			keyword_dict[name[1]][w][0] = round(decimal.Decimal(float(keyword_dict[name[1]][w][0]*10000) / maxi),5)
+			keyword_dict[name[1]][w][1] = round(decimal.Decimal(float(keyword_dict[name[1]][w][1]*100) / maxi),5)
+			keyword_dict[name[1]][w][2] = round(decimal.Decimal(float(keyword_dict[name[1]][w][2]*1) / maxi),5)
 		
 
 		i=i+2
@@ -355,12 +357,69 @@ def keyword_weight() :
 	f.close()
 
 
+# 2-mean clusterring on the results to get a relevent set of results
+def two_mean_od_cluster(lst) :
+
+	assign_lst = [0]*len(lst)
+
+	upperbnd = lst[0][1]
+	lowerbnd = lst[len(lst) - 1][1]
+
+	c1 = ((upperbnd - lowerbnd)*0.25) + lowerbnd
+	c2 = ((upperbnd - lowerbnd)*0.75) + lowerbnd
+
+	q1 = 0
+	q2 = 0
+
+	for i in range(0,10) : 
+		j=0
+		c1_num = 0
+		c1_frq = 0
+		c2_num = 0
+		c2_frq = 0
+		q2 = 0
+		for repo in lst : 
+			d1 = abs(c1 - repo[1])
+			d2 = abs(c2 - repo[1])
+			if d2 >= d1 : 
+				assign_lst[j] = 1
+				c1_num += repo[1]
+				c1_frq += 1
+			else : 
+				q2 += 1
+				assign_lst[j] = 2
+				c2_num += repo[1]
+				c2_frq += 1
+
+			j = j + 1
+
+		# print assign_lst
+
+		try :
+			c1 = c1_num / c1_frq
+		except : 
+			return 0
+
+		try :
+			c2 = c2_num / c2_frq
+		except : 
+			return len(lst)
+
+		if(q1==q2) : 
+			break;
+		else : 
+			q1 = q2
+
+	trimmed = lst[:q2]
+
+
+	return q2
+
+
 # takes in the user query, forms a query vector and implements cosine similarity 
 def query() :
 	
 	q = raw_input("enter the query ? \n")
-
-	# q = "google"
 
 	tokenizer = RegexpTokenizer(r'\w+')
 	q = tokenizer.tokenize(q)
@@ -398,69 +457,172 @@ def query() :
 
 	results = sorted(results, key=lambda tup: tup[1], reverse = True)
 
-	print results
+	print "\n\nRanking of results based on search :: \n"
+
+	for i in range(0,len(results)) : 
+		print str(results[i])
+
+	search_relevence_graph1(results)
 
 	if (len(results) > 0) :
 		qualified = two_mean_od_cluster(results)
 	else : 
 		qualified = 0
 
-	for i in range(0,qualified) : 
-		print results[i]
+	# trimmed the list of results after 2-mean clusterring
+	trimmed_search_results = results[:(qualified)]
+
+	print "\n\ntrimmed results  based on search :: \n"
+
+	for i in range(0,len(trimmed_search_results)) : 
+	 	print trimmed_search_results[i]
 
 
-# 2-mean clusterring on the results to get a relevent set of results
-def two_mean_od_cluster(lst) :
 
-	assign_lst = [0]*len(lst)
+	popularity_dict = get_popularity_index(trimmed_search_results)
 
-	upperbnd = lst[0][1]
-	lowerbnd = lst[len(lst) - 1][1]
+	for i in range(0,len(trimmed_search_results)) : 
+		pr = popularity_dict[trimmed_search_results[i][0]]
+		rel_score = pr['score']
 
-	c1 = ((upperbnd - lowerbnd)*0.25) + lowerbnd
-	c2 = ((upperbnd - lowerbnd)*0.75) + lowerbnd
+		effective_score = round(17/((10/trimmed_search_results[i][1]) + (7/rel_score)), 5)
 
-	q1 = 0
-	q2 = 0
+		trimmed_search_results[i] += (rel_score, effective_score) 
 
-	for i in range(0,10) : 
-		j=0
-		c1_num = 0
-		c1_frq = 0
-		c2_num = 0
-		c2_frq = 0
-		q2 = 0
-		for repo in lst : 
-			d1 = abs(c1 - repo[1])
-			d2 = abs(c2 - repo[1])
-			if d2 >= d1 : 
-				assign_lst[j] = 1
-				c1_num += repo[1]
-				c1_frq += 1
-			else : 
-				q2 += 1
-				assign_lst[j] = 2
-				c2_num += repo[1]
-				c2_frq += 1
 
-			j = j + 1
+	trimmed_search_results = sorted(trimmed_search_results, key=lambda tup: tup[3], reverse = True)
 
-		print assign_lst
 
-		try :
-			c1 = c1_num / c1_frq
-		except : 
-			return 0
+	print "\n\nRanking of trimmed results with popularity index based on search :: \n"
 
-		try :
-			c2 = c2_num / c2_frq
-		except : 
-			return len(lst)
+	for i in range(0,len(trimmed_search_results)) : 
+	 	print trimmed_search_results[i]
 
-		if(q1==q2) : 
-			break;
-		else : 
-			q1 = q2
+	search_relevence_graph(trimmed_search_results)
 
-	return q2
+
+	# for i in range(0,len(trimmed_search_results)) : 	
+	# 	print str(trimmed_search_results[i])
+
+	# search_relevence_graph(trimmed_search_results)
+
+
+
+def get_popularity_index(results) :
+
+	multiplier_s = 0.5
+	multiplier_f = 0.3
+	multiplier_w = 0.2
+	
+	popularity_data = {}
+
+	i = 0
+	max_stars = 0
+	max_forks = 0
+
+	for i in range(0,len(results)) :
+		# print results[i][0]
+		f = open("data/"+results[i][0]+"/data.str", 'r')
+		obj = eval(f.read())
+		repo = {}
+
+		repo['created_at'] = obj['created_at']
+		repo['stargazers_count'] = obj['stargazers_count']
+		repo['forks_count'] = obj['forks_count']
+		# repo['subscribers_count'] = obj['subscribers_count']
+		repo['has_wiki'] = obj['has_wiki']
+
+		if max_stars < obj['stargazers_count'] : 
+			max_stars = obj['stargazers_count']
+
+		if max_forks < obj['forks_count'] : 
+			max_forks = obj['forks_count']
+
+		popularity_data[results[i][0]] = repo
+
+
+	for i in range(0,len(results)) :
+		
+		popularity_data[results[i][0]]['stargazers_count'] = round(popularity_data[results[i][0]]['stargazers_count']/float(max_stars),5)
+		popularity_data[results[i][0]]['forks_count'] = round(popularity_data[results[i][0]]['forks_count']/float(max_forks),5)
+		# repo['subscribers_count'] = obj['subscribers_count']
+		
+		if popularity_data[results[i][0]]['has_wiki'] == True : 
+			popularity_data[results[i][0]]['has_wiki'] = 1
+		else :
+			popularity_data[results[i][0]]['has_wiki'] = 0
+
+
+		popularity_data[results[i][0]]['score'] = round(multiplier_s*popularity_data[results[i][0]]['stargazers_count'] + multiplier_f*popularity_data[results[i][0]]['forks_count'] + multiplier_w*popularity_data[results[i][0]]['has_wiki'], 5)
+
+	return popularity_data
+
+
+
+def search_relevence_graph(results) :
+
+	x = []
+	y = []
+	y1 = []
+	y2 = []
+	x_label = []
+
+	for i in range(0, len(results)) :
+		x.append(i+1)
+		y.append(results[i][3])
+		y1.append(results[i][1])
+		y2.append(results[i][2])
+		x_label.append(results[i][0])
+
+	# print x
+	# print y
+	# print x_label
+
+	plt.plot(x, y, 'ro')
+	plt.plot(x, y1, 'bo')
+	plt.plot(x, y2, 'go')
+	plt.xticks(x, x_label, rotation='vertical')
+	plt.margins(0.2)
+	plt.subplots_adjust(bottom=0.15)
+	plt.show()
+
+
+
+def search_relevence_graph1(results) :
+
+	x = []
+	y1 = []
+	x_label = []
+
+	for i in range(0, len(results)) :
+		x.append(i+1)
+		y1.append(results[i][1])
+		x_label.append(results[i][0])
+
+	# print x
+	# print y
+	# print x_label
+
+	plt.plot(x, y1, 'bo')
+	plt.xticks(x, x_label, rotation='vertical')
+	plt.margins(0.2)
+	plt.subplots_adjust(bottom=0.15)
+	plt.show()
+
+
+
+
+# def graphs() :
+# 	x = np.array([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5])
+
+# 	print(np.amin(x))
+
+# graphs()
+
+
+# query("responsive css frameworks")
+
+query()
+
+
 
