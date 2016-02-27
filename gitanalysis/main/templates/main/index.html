@@ -1,0 +1,36 @@
+{% load staticfiles %}
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="description" content="A Web-App that analysis various language used over github."> 
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Git Analysis</title>
+
+	<link href="{% static 'main/css/fonts/font.css' %}" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'main/css/icons/icon.css' %}">
+	<link rel="stylesheet" href="{% static 'main/css/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+
+</head>
+<body>
+	<div class="main_nav" style="padding: 20px;font-size: 2em;background:#311b92;color: #f0f0f0;text-align: center;">	Git Analysis 
+	</div>
+	<div class="box" style="margin:15% 10%;padding: 5% 10%;height:30%;width:80%;">
+		<div>Enter the Link</div>
+		<div>
+		<form>
+			<div class="input-group">
+			  <input type="text" class="form-control" aria-label="...">
+			  <div class="input-group-btn">
+			    <!-- Button and dropdown menu -->
+			  </div>
+			</div>
+			<button>Submit</button>
+		</form>
+		</div>
+	</div>
+<script src="{% static 'main/js/bootstrap.min.js' %} "></script>
+</body>
+</html>
