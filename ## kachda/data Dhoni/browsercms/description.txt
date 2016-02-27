@@ -1,0 +1,1 @@
+BrowserCMS: Humane Content Management for Rails

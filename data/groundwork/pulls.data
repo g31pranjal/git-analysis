@@ -1,0 +1,1 @@
+[{'merged_at': u'2015-10-01T19:28:41Z', 'created_at': datetime.datetime(2015, 9, 19, 6, 25, 12), 'number': 275, 'state': u'closed'}, {'merged_at': None, 'created_at': datetime.datetime(2015, 6, 12, 2, 34, 50), 'number': 270, 'state': u'closed'}]

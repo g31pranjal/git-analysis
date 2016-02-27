@@ -13,6 +13,7 @@ from nltk.stem import WordNetLemmatizer
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import datetime
 
 
 g = Github('b11cd88e5a7c991cd02645dbf2ed7d0d9c21ec0c')
@@ -462,7 +463,7 @@ def query() :
 	for i in range(0,len(results)) : 
 		print str(results[i])
 
-	search_relevence_graph1(results)
+	# search_relevence_graph1(results)
 
 	if (len(results) > 0) :
 		qualified = two_mean_od_cluster(results)
@@ -480,14 +481,36 @@ def query() :
 
 
 	popularity_dict = get_popularity_index(trimmed_search_results)
+	
+	pr_dict = get_pr_stats(trimmed_search_results)
+
+	print pr_dict
+
 
 	for i in range(0,len(trimmed_search_results)) : 
 		pr = popularity_dict[trimmed_search_results[i][0]]
 		rel_score = pr['score']
 
-		effective_score = round(17/((10/trimmed_search_results[i][1]) + (7/rel_score)), 5)
+		pc = pr_dict[trimmed_search_results[i][0]]
 
-		trimmed_search_results[i] += (rel_score, effective_score) 
+		rClosed = round(pc['closed'] / float(pc['total']), 5)
+		rOpen = 1 - rClosed
+		
+		rMerged = round(pc['merged'] / float(pc['total']), 5)
+		rDiscarded = rClosed - rMerged
+
+		collab = rMerged - rDiscarded
+
+		respons =  rClosed - rOpen
+
+		pr_score = collab - respons 
+
+		print pr_score
+
+
+		effective_score = round(2/((1/trimmed_search_results[i][1]) + (1/(rel_score - 0.5*pr_score))), 5)
+
+		trimmed_search_results[i] += ((rel_score - pr_score), effective_score) 
 
 
 	trimmed_search_results = sorted(trimmed_search_results, key=lambda tup: tup[3], reverse = True)
@@ -498,13 +521,12 @@ def query() :
 	for i in range(0,len(trimmed_search_results)) : 
 	 	print trimmed_search_results[i]
 
-	search_relevence_graph(trimmed_search_results)
-
+	
 
 	# for i in range(0,len(trimmed_search_results)) : 	
 	# 	print str(trimmed_search_results[i])
 
-	# search_relevence_graph(trimmed_search_results)
+	search_relevence_graph(trimmed_search_results)
 
 
 
@@ -558,6 +580,30 @@ def get_popularity_index(results) :
 	return popularity_data
 
 
+def get_pr_stats(results) :
+	pr_stats = {}
+	for i in range(0,len(results)) :
+		print results[i][0]
+		f = open("data/"+results[i][0]+"/pulls.data", 'r')
+		arr = eval(f.read())
+
+		obj = {}
+		obj['total'] = 0
+		obj['closed'] = 0
+		obj['discard'] = 0
+		obj['merged'] = 0
+
+		for j in range(0,len(arr)) :
+			obj['total'] += 1
+			# print arr[j]
+			if(arr[j]['state'] == 'closed') :
+				obj['closed'] += 1
+				if(arr[j]['merged_at'] == None) : 
+					obj['discard'] += 1
+				else :
+					obj['merged'] += 1
+		pr_stats[results[i][0]] = obj
+	return pr_stats
 
 def search_relevence_graph(results) :
 
